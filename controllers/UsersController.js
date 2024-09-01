@@ -6,19 +6,19 @@ const postNew = async (req, res) => {
     const db = dbClient.client.db(dbClient.database);
     const collection = db.collection('users');
     if (!req.body.email) {
-      res.status(400).json({error: 'Missing email'});
+      return res.status(400).json({error: 'Missing email'});
     } else if (!req.body.password) {
-      res.status(400).json({error: 'Missing password'});
+      return res.status(400).json({error: 'Missing password'});
     }
     const existingUser = await collection.findOne({ email: req.body.email });
     if (existingUser) {
-      res.status(400).json({error: 'Already exist'});
+      return res.status(400).json({error: 'Already exist'});
     }
     const result = await collection.insertOne({
       email: req.body.email,
       password: sha1(req.body.password),
     });
-    res.json({
+    return res.json({
       id: result.insertedId,
       email: result.ops[0].email,
     });
