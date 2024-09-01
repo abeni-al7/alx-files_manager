@@ -20,7 +20,7 @@ const postNew = async (req, res) => {
     });
     res.json({
       id: result.insertedId,
-      email: req.body.email,
+      email: result.ops[0].email,
     });
   } catch(err) {
     console.log(err);
