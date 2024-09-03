@@ -20,7 +20,7 @@ const getConnect = async (req, res) => {
   const key = `auth_${token}`;
   await redisClient.set(key, existingUser.id, 86400000);
   return res.status(200).json({
-    token,
+    token: await redisClient.get(key),
   });
 };
 
