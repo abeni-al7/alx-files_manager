@@ -18,16 +18,18 @@ const getConnect = async (req, res) => {
   }
   const token = v4();
   const key = `auth_${token}`;
-  await redisClient.set(key, existingUser.id, 86400000);
+  await redisClient.set(key, existingUser._id.toString(), 86400000);
   return res.status(200).json({
-    token: await redisClient.get(key),
+    token,
   });
 };
 
 const getDisconnect = async (req, res) => {
-  const token = req.headers['X-Token'];
+  const token = req.headers['x-token'];
   const key = `auth_${token}`;
+  console.log(key);
   const userId = await redisClient.get(key);
+  console.log(userId);
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
