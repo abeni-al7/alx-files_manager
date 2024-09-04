@@ -75,6 +75,56 @@ const postUpload = async (req, res) => {
   });
 };
 
+const getShow = async (req, res) => {
+  const token = req.headers['x-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const key = `auth_${token}`;
+  const userId = await redisClient.get(key);
+  const user = await dbClient.client.db(dbClient.database).collection('users').findOne({ _id: ObjectId(userId) });
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { id } = req.body;
+  const file = await dbClient.client.db(dbClient.database).collection('files').findOne({
+    _id: id,
+    userId,
+  });
+  if (!file) return res.status(404).json({ error: 'Not found' });
+  return res.status(200).json({
+    id: file._id.toString(),
+    userId: file.userId,
+    name: file.name,
+    type: file.type,
+    isPublic: file.isPublic,
+    parentId: file.parentId,
+  });
+};
+
+const getIndex = async (req, res) => {
+  const token = req.headers['x-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const key = `auth_${token}`;
+  const userId = await redisClient.get(key);
+  const user = await dbClient.client.db(dbClient.database).collection('users').findOne({ _id: ObjectId(userId) });
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const parentId = req.params.parentId || 0;
+  const page = req.params.page || 0;
+  const maxPageSize = 20;
+  const pipeline = [
+    { $match: { parentId } },
+    { $skip: (page) * maxPageSize },
+    { $limit: maxPageSize }
+  ];
+  await dbClient.client.db(dbClient.database).collection('files').aggregate(pipeline).toArray((err, results) => {
+    if (err) throw err;
+    return res.status(200).send(results);
+  });
+};
+
 export default {
   postUpload,
+  getShow,
+  getIndex,
 };
