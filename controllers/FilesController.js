@@ -84,9 +84,9 @@ const getShow = async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const { id } = req.body;
+  const { id } = req.params;
   const file = await dbClient.client.db(dbClient.database).collection('files').findOne({
-    _id: id,
+    _id: ObjectId(id),
     userId,
   });
   if (!file) return res.status(404).json({ error: 'Not found' });
