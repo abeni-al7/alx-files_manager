@@ -121,8 +121,68 @@ const getIndex = async (req, res) => {
   return res.status(200).send(results);
 };
 
+const putPublish = async (req, res) => {
+  const token = req.headers['x-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const key = `auth_${token}`;
+  const userId = await redisClient.get(key);
+  const user = await dbClient.client.db(dbClient.database).collection('users').findOne({ _id: ObjectId(userId) });
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { id } = req.params;
+  const file = await dbClient.client.db(dbClient.database).collection('files').findOne({
+    _id: ObjectId(id),
+    userId,
+  });
+  if (!file) return res.status(404).json({ error: 'Not found' });
+  await dbClient.client.db(dbClient.database).collection('files').updateOne(
+    { _id: ObjectId(id) },
+    { $set: { isPublic: true } },
+  );
+  return res.status(200).json({
+    id: file._id.toString(),
+    userId: file.userId,
+    name: file.name,
+    type: file.type,
+    isPublic: true,
+    parentId: file.parentId,
+  });
+};
+
+const putUnpublish = async (req, res) => {
+  const token = req.headers['x-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const key = `auth_${token}`;
+  const userId = await redisClient.get(key);
+  const user = await dbClient.client.db(dbClient.database).collection('users').findOne({ _id: ObjectId(userId) });
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { id } = req.params;
+  const file = await dbClient.client.db(dbClient.database).collection('files').findOne({
+    _id: ObjectId(id),
+    userId,
+  });
+  if (!file) return res.status(404).json({ error: 'Not found' });
+  await dbClient.client.db(dbClient.database).collection('files').updateOne(
+    { _id: ObjectId(id) },
+    { $set: { isPublic: false } },
+  );
+  return res.status(200).json({
+    id: file._id.toString(),
+    userId: file.userId,
+    name: file.name,
+    type: file.type,
+    isPublic: false,
+    parentId: file.parentId,
+  });
+};
+
 export default {
   postUpload,
   getShow,
   getIndex,
+  putPublish,
+  putUnpublish,
 };
