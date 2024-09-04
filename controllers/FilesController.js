@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { lookup } from 'mime-types';
 import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../utils/redis';
@@ -179,10 +180,45 @@ const putUnpublish = async (req, res) => {
   });
 };
 
+async function checkFileExists(filePath) {
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+const getFile = async (req, res) => {
+  const { id } = req.params;
+  const file = await dbClient.client.db(dbClient.database).collection('files').findOne({
+    _id: ObjectId(id),
+  });
+  if (!file) return res.status(404).json({ error: 'Not found' });
+  if (!file.isPublic) {
+    const token = req.headers['x-token'];
+    if (!token) return res.status(404).json({ error: 'Not found' });
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+    const user = await dbClient.client.db(dbClient.database).collection('users').findOne({ _id: ObjectId(userId) });
+    if (!user) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (userId !== file.userId) return res.status(404).json({ error: 'Not found' });
+  }
+  if (file.type === 'folder') return res.status(400).json({ error: 'A folder doesn\'t have content' });
+  if (!checkFileExists(file.localPath)) return res.status(404).json({ error: 'Not found' });
+  const mimeType = lookup(file.name);
+  res.header('Content-Type', mimeType);
+  const fileContent = Buffer.from(file.data, 'base64').toString('utf-8');
+  return res.send(fileContent);
+};
+
 export default {
   postUpload,
   getShow,
   getIndex,
   putPublish,
   putUnpublish,
+  getFile,
 };
