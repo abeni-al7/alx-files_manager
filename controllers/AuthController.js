@@ -1,10 +1,11 @@
 import sha1 from 'sha1';
-import { v4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
 
 const getConnect = async (req, res) => {
   const header = req.headers.authorization;
+  if (!header) return res.status(401).json({ error: 'Unauthorized' });
   let userData = header.split(' ');
   userData = Buffer.from(userData[1], 'base64').toString('utf-8').split(':');
   const email = userData[0];
@@ -16,7 +17,7 @@ const getConnect = async (req, res) => {
   if (!existingUser) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const token = v4();
+  const token = uuidv4();
   const key = `auth_${token}`;
   await redisClient.set(key, existingUser._id.toString(), 86400000);
   return res.status(200).json({
@@ -26,6 +27,7 @@ const getConnect = async (req, res) => {
 
 const getDisconnect = async (req, res) => {
   const token = req.headers['x-token'];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
   const key = `auth_${token}`;
   const userId = await redisClient.get(key);
   if (!userId) {
