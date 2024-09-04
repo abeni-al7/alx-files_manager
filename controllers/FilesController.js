@@ -22,7 +22,7 @@ const postUpload = async (req, res) => {
   if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
   const { parentId } = req.body;
   if (parentId) {
-    const existingFile = await dbClient.client.db(dbClient.database).collection('files').findOne({ _id: parentId });
+    const existingFile = await dbClient.client.db(dbClient.database).collection('files').findOne({ _id: ObjectId(parentId) });
     if (!existingFile) return res.status(400).json({ error: 'Parent not found' });
     if (existingFile.type !== 'folder') return res.status(400).json({ error: 'Parent is not a folder' });
   }
@@ -63,7 +63,6 @@ const postUpload = async (req, res) => {
     type,
     parentId: parentId || 0,
     isPublic: isPublic || false,
-    data,
     localPath: filePath,
   });
   return res.status(201).json({
