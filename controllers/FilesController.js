@@ -115,12 +115,10 @@ const getIndex = async (req, res) => {
   const pipeline = [
     { $match: { parentId } },
     { $skip: (page) * maxPageSize },
-    { $limit: maxPageSize }
+    { $limit: maxPageSize },
   ];
-  await dbClient.client.db(dbClient.database).collection('files').aggregate(pipeline).toArray((err, results) => {
-    if (err) throw err;
-    return res.status(200).send(results);
-  });
+  const results = await dbClient.client.db(dbClient.database).collection('files').aggregate(pipeline).toArray();
+  return res.status(200).send(results);
 };
 
 export default {
